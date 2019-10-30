@@ -453,9 +453,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
+            // 校验传入的 eventLoop 非空
             if (eventLoop == null) {
                 throw new NullPointerException("eventLoop");
             }
+            // 校验未注册
             if (isRegistered()) {
                 promise.setFailure(new IllegalStateException("registered to an event loop already"));
                 return;
@@ -530,6 +532,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
+            // 判断是否在 EventLoop 的线程中。
             assertEventLoop();
 
             if (!promise.setUncancellable() || !ensureOpen(promise)) {
@@ -549,8 +552,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         "address (" + localAddress + ") anyway as requested.");
             }
 
+            // 记录 Channel 是否激活
             boolean wasActive = isActive();
             try {
+                // 绑定 Channel 的端口
+                // NioServerSocketChannel.bind()
+                // 调用服务端的 Java 原生 NIO ServerSocketChannel绑定端口。
                 doBind(localAddress);
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
@@ -558,6 +565,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            // 若 Channel 是新激活的，触发通知 Channel 已激活的事件。
             if (!wasActive && isActive()) {
                 invokeLater(new Runnable() {
                     @Override

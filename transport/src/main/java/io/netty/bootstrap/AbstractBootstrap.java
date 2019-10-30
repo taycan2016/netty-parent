@@ -52,12 +52,30 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C extends Channel> implements Cloneable {
 
+    /**
+     * EventLoopGroup 对象
+     */
     volatile EventLoopGroup group;
+    /**
+     * Channel 工厂，用于创建 Channel 对象。
+     */
     @SuppressWarnings("deprecation")
     private volatile ChannelFactory<? extends C> channelFactory;
+    /**
+     * 本地地址
+     */
     private volatile SocketAddress localAddress;
+    /**
+     * 可选项集合
+     */
     private final Map<ChannelOption<?>, Object> options = new ConcurrentHashMap<ChannelOption<?>, Object>();
+    /**
+     * 属性集合
+     */
     private final Map<AttributeKey<?>, Object> attrs = new ConcurrentHashMap<AttributeKey<?>, Object>();
+    /**
+     * 处理器
+     */
     private volatile ChannelHandler handler;
 
     AbstractBootstrap() {
@@ -139,6 +157,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     * 设置创建 Channel 的本地地址
+     * 一般情况下，不会调用该方法进行配置，而是调用 #bind(...) 方法
      * @see #localAddress(SocketAddress)
      */
     public B localAddress(int inetPort) {
@@ -160,6 +180,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     * 设置创建 Channel 的可选项
+     *
      * Allow to specify a {@link ChannelOption} which is used for the {@link Channel} instances once they got
      * created. Use a value of {@code null} to remove a previous set {@link ChannelOption}.
      */
@@ -174,6 +196,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     * 方法，设置创建 Channel 的属性
+     *
      * Allow to specify an initial attribute of the newly created {@link Channel}.  If the {@code value} is
      * {@code null}, the attribute of the specified {@code key} is removed.
      */
@@ -222,11 +246,13 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Create a new {@link Channel} and bind it.
      */
     public ChannelFuture bind() {
+        // 校验服务启动需要的必要参数
         validate();
         SocketAddress localAddress = this.localAddress;
         if (localAddress == null) {
             throw new IllegalStateException("localAddress not set");
         }
+        // 绑定本地地址( 包括端口 )
         return doBind(localAddress);
     }
 
@@ -261,15 +287,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     // 绑定端口地址
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        // 初始化并注册一个 Channel 对象，因为注册是异步的过程，所以返回一个 ChannelFuture 对象。
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
+            // 若发生异常，直接进行返回。
             return regFuture;
         }
 
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
+            // 绑定 Channel 的端口，并注册 Channel 到 SelectionKey 中。
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
@@ -300,6 +329,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         Channel channel = null;
         try {
             // 调用反射工厂反射获取Channel
+            // 初始化channel
             channel = channelFactory.newChannel();
             init(channel);
         } catch (Throwable t) {
@@ -313,6 +343,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        // 注册此channel 到 EventLoopGroup 中
+        /**
+         * 首先获得 EventLoopGroup 对象，
+         * 后调用 EventLoopGroup#register(Channel) 方法，
+         * 注册 Channel 到 EventLoopGroup 中。
+         * 实际在方法内部，EventLoopGroup 会分配一个 EventLoop 对象，
+         * 将 Channel 注册到其上
+         */
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
@@ -348,9 +386,11 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
+                // 注册成功，绑定端口
                 if (regFuture.isSuccess()) {
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
+                    // 注册失败，回调通知 promise 异常
                     promise.setFailure(regFuture.cause());
                 }
             }
