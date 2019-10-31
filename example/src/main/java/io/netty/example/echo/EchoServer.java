@@ -72,11 +72,11 @@ public final class EchoServer {
                      //p.addLast(new LoggingHandler(LogLevel.INFO));
                      p.addLast(serverHandler);
                  }
-             });
             });
 
             // Start the server.
             // 绑定端口，并同步等待成功，即启动服务端
+            // 整个服务器就是在这个方法里启动完成的
             ChannelFuture f = b.bind(PORT).sync();
 
             // Wait until the server socket is closed.

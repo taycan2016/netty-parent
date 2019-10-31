@@ -90,7 +90,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private boolean registered;
 
     protected DefaultChannelPipeline(Channel channel) {
-        // 自己初始化传进来的channel
+        // 是一个双向链表，并将 NioServerSocketChannel 设置为自己的属性
         this.channel = ObjectUtil.checkNotNull(channel, "channel");
         succeededFuture = new SucceededChannelFuture(channel, null);
         voidPromise =  new VoidChannelPromise(channel, true);

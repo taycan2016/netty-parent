@@ -15,6 +15,7 @@
 
 package io.netty.handler.codec.http2;
 
+//import io.netty.util.collection.CharObjectHashMap;
 import io.netty.util.collection.CharObjectHashMap;
 import io.netty.util.internal.UnstableApi;
 

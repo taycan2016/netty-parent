@@ -130,7 +130,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         // 设置key
         setAttributes(channel, attrs0().entrySet().toArray(newAttrArray(0)));
 
-        // 创建一个pipeline
+        // 获取在创建Channel时创建一个pipeline
         ChannelPipeline p = channel.pipeline();
 
         final EventLoopGroup currentChildGroup = childGroup;

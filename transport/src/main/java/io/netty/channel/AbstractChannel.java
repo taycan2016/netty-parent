@@ -73,7 +73,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         id = newId();
         // 赋值unSafe
         unsafe = newUnsafe();
-        // 初始化Pipeline
+        // 初始化Pipeline 双向链表结构，用于过滤所有的进出的消息。
         pipeline = newChannelPipeline();
     }
 

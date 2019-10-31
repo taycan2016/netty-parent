@@ -347,7 +347,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         /**
          * 首先获得 EventLoopGroup 对象，
          * 后调用 EventLoopGroup#register(Channel) 方法，
-         * 注册 Channel 到 EventLoopGroup 中。
+         * 注册 NioServerSocketChannel 到 EventLoopGroup 中。
          * 实际在方法内部，EventLoopGroup 会分配一个 EventLoop 对象，
          * 将 Channel 注册到其上
          */
