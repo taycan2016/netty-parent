@@ -143,8 +143,17 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         javaChannel().close();
     }
 
+    /**
+     * 通过 ServerSocket 的 accept 方法获取到 Tcp 连接，然后封装成 Netty 的 NioSocketChannel 对象。最后添加到 容器中。
+     *
+     * @param buf
+     * @return
+     * @throws Exception
+     */
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
+
+        // Boss 线程监听到的 Accept 事件，相当于一个 Tcp 连接。
         SocketChannel ch = SocketUtils.accept(javaChannel());
 
         try {

@@ -125,7 +125,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     @Override
     void init(Channel channel) {
-        // 设置所有的option
+        // 设置 NioServerSocketChannel 的 TCP 属性。
         setChannelOptions(channel, options0().entrySet().toArray(newOptionArray(0)), logger);
         // 设置key
         setAttributes(channel, attrs0().entrySet().toArray(newAttrArray(0)));
@@ -139,6 +139,12 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 childOptions.entrySet().toArray(newOptionArray(0));
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(newAttrArray(0));
 
+        // 将整个 handler 插入到 tail 的前面，因为 tail 永远会在后面
+        /**
+         * pipeline 的 addLast 方法，实际上创建一个 Context 对象包装了 pipeline 和 handler，
+         * 然后通过同步或者异步的方式，间接执行 handler 的 自定义方法-------initChannel 方法。
+         * 而这个 context 也加入到了 pipeline 的链表节点中。
+         */
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {

@@ -78,6 +78,20 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     @Override
     public ChannelFuture register(Channel channel) {
+
+        /**
+         * this 单个线程
+         * 为什么使用单例线程池呢？一个线程还使用线程池有什么意义呢？
+         * 答：需要任务队列，有很多任务需要进行调度，所以需要线程池的特性。
+         * 但为了多线程的切换导致的性能损耗和为了消除同步，所以使用单个线程。
+         */
+
+        /**
+         * 这里需要说一下 Promise 的作用，其实类似 Future，事实上也继承了 JDK 的 Future，
+         * 但增加了很多功能，比如 JDK 的 Future 虽然是异步的，但仍需要 get 方法 阻塞获取结果才能坐之后的事情，
+         * 而 Promise 可以通过设置监听器的方式，在方法执行成功或者失败的情况下无需等待，
+         * 就能执行监听器中的任务，效率币 Future 高很多。从某种程度上说，Future 是非阻塞，而Promise 才是正在的异步。
+         */
         return register(new DefaultChannelPromise(channel, this));
     }
 

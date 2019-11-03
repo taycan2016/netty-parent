@@ -473,6 +473,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
+
+                // 异步（因为我们这里直到现在还是 main 线程在执行，不属于当前线程）的执行 register0 方法。
                 try {
                     eventLoop.execute(new Runnable() {
                         @Override
@@ -507,6 +509,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 // user may already fire events through the pipeline in the ChannelFutureListener.
                 pipeline.invokeHandlerAddedIfNeeded();
 
+                // 通知 promise 已经成功了
                 safeSetSuccess(promise);
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing

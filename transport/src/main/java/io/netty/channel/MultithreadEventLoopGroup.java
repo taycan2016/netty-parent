@@ -76,6 +76,7 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
 
     @Override
     public EventLoop next() {
+        // 这里是著名的 Netty 对性能压榨的一个例子，Netty 对于选取数组中的线程有着2套策略。
         return (EventLoop) super.next();
     }
 
