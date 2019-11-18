@@ -94,17 +94,27 @@ public class FastThreadLocal<V> {
         InternalThreadLocalMap.destroy();
     }
 
+    /**
+     * 为了方便删除 FTL,避免遍历循环。在 static removeAll 方法中，可以通过遍历 Set，逐个删除 Map 里的 FTL。
+     * 第一次初始化一个Set,并存入到InternalThreadLocalMap的key=0的位置
+     * 后续添加进来的ftl添加到Set中
+     */
     @SuppressWarnings("unchecked")
     private static void addToVariablesToRemove(InternalThreadLocalMap threadLocalMap, FastThreadLocal<?> variable) {
+        // 该变量是 static final 的，因此通常是 0
         Object v = threadLocalMap.indexedVariable(variablesToRemoveIndex);
         Set<FastThreadLocal<?>> variablesToRemove;
         if (v == InternalThreadLocalMap.UNSET || v == null) {
+            // 创建一个基于 IdentityHashMap 的 Set，泛型是 FastThreadLocal
             variablesToRemove = Collections.newSetFromMap(new IdentityHashMap<FastThreadLocal<?>, Boolean>());
+            // 将这个 Set 放到这个 Map 数组的下标 0 处
             threadLocalMap.setIndexedVariable(variablesToRemoveIndex, variablesToRemove);
         } else {
+            // 如果拿到的不是 UNSET ，说明这是第二次操作了，因此可以强转为 Set
             variablesToRemove = (Set<FastThreadLocal<?>>) v;
         }
 
+        // 最后的目的就是将 FastThreadLocal 放置到 Set 中
         variablesToRemove.add(variable);
     }
 
@@ -211,7 +221,10 @@ public class FastThreadLocal<V> {
      * @return see {@link InternalThreadLocalMap#setIndexedVariable(int, Object)}.
      */
     private void setKnownNotUnset(InternalThreadLocalMap threadLocalMap, V value) {
+        //扩容了，或者没扩容，但插入的对象没有替换掉别的对象，也就是原槽位是空对象。换句话说，只有更新了对象才会返回 false。
         if (threadLocalMap.setIndexedVariable(index, value)) {
+            // 更新的不会进入
+            // 将 FastThreadLocal 对象保存到一个 Set 中
             addToVariablesToRemove(threadLocalMap, this);
         }
     }

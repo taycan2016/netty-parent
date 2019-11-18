@@ -884,10 +884,14 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
         // 判断是否是netty创建的线程
         boolean inEventLoop = inEventLoop();
+        // 添加到任务队列中去
         addTask(task);
         if (!inEventLoop) {
+            // 如果不是，则尝试启动线程（但由于线程是单个的，因此只能启动一次）
             startThread();
+            // 如果线程已经停止，
             if (isShutdown()) {
+
                 boolean reject = false;
                 try {
                     if (removeTask(task)) {
@@ -898,6 +902,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                     // hope we will be able to pick-up the task before its completely terminated.
                     // In worst case we will log on termination.
                 }
+                // 并且删除任务失败，则执行拒绝策略，默认是抛出异常。
                 if (reject) {
                     reject();
                 }
@@ -1050,11 +1055,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 try {
 
                     // 调用NioEventLoop的run()
+                    // 执行当前 NioEventLoop 的 run 方法，注意：这个方法是个死循环，是整个 EventLoop 的核心
                     SingleThreadEventExecutor.this.run();
                     success = true;
                 } catch (Throwable t) {
                     logger.warn("Unexpected exception from an event executor: ", t);
                 } finally {
+                    // 在 finally 块中，使用CAS 不断修改 state 状态，改成 ST_SHUTTING_DOWN。也就是当线程 Loop 结束的时候。
                     for (;;) {
                         int oldState = state;
                         if (oldState >= ST_SHUTTING_DOWN || STATE_UPDATER.compareAndSet(

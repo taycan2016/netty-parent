@@ -448,7 +448,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         for (;;) {
             try {
                 try {
+                    // 如果任务队列中有任务，就立即唤醒 selector ，并返回 selector 的 selecotrNow 方法的返回值。如果没有任务，直接返回 -1，这个策略在 DefaultSelectStrategy 中
                     switch (selectStrategy.calculateStrategy(selectNowSupplier, hasTasks())) {
+                    // 如果返回的是 -2， 则继续循环。如果返回的是 -1，也就是没有任务，则调用 selector 的 select 方法，并且设置 wakenUp 为 false。
                     case SelectStrategy.CONTINUE:
                         continue;
 
@@ -658,6 +660,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 这里的 unsafe 是每个 key 所对应的 Channel 对应的 unsafe。因此处理逻辑也是不同的。
+     * 可以说，run 方法中的 processSelectedKeys 方法的核心就是，
+     * 拿到 selector 返回的所有 key 进行循环调用 processSelectedKey 方法，
+     * processSelectedKey 方法中会调用每个 Channel 的 unsafe 的对应方法。
+     */
     private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
         final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();
         if (!k.isValid()) {
@@ -805,14 +813,16 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             //计数器
             int selectCnt = 0;
             long currentTimeNanos = System.nanoTime();
+            // 使用当前时间加上定时任务即将执行的剩余时间（如果没有定时任务，默认1秒）。
             long selectDeadLineNanos = currentTimeNanos + delayNanos(currentTimeNanos);
-
+            // selectDeadLineNanos减去当前时间并加上一个缓冲值 0.5秒，得到一个 selecotr 阻塞超时时间。
             long normalizedDeadlineNanos = selectDeadLineNanos - initialNanoTime();
             if (nextWakeupTime != normalizedDeadlineNanos) {
                 nextWakeupTime = normalizedDeadlineNanos;
             }
 
             for (;;) {
+                //如果这个值小于1秒，则立即 selecotNow 返回。
                 long timeoutMillis = (selectDeadLineNanos - currentTimeNanos + 500000L) / 1000000L;
                 if (timeoutMillis <= 0) {
                     if (selectCnt == 0) {
@@ -826,12 +836,15 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // Selector#wakeup. So we need to check task queue again before executing select operation.
                 // If we don't, the task might be pended until select operation was timed out.
                 // It might be pended until idle timeout if IdleStateHandler existed in pipeline.
+                // 含有任务 && 唤醒 selector 成功； 则立即返回
+                // 如果大于0（默认是1秒），如果任务队列中有任务，并且 CAS 唤醒 selector 能够成功。立即返回
                 if (hasTasks() && wakenUp.compareAndSet(false, true)) {
                     selector.selectNow();
                     selectCnt = 1;
                     break;
                 }
 
+                // 开始真正的阻塞（默认一秒钟），调用的是 SelectedSelectionKeySetSelector 的 select 方法
                 int selectedKeys = selector.select(timeoutMillis);
                 // 轮询++
                 selectCnt ++;
@@ -864,13 +877,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 if (time - TimeUnit.MILLISECONDS.toNanos(timeoutMillis) >= currentTimeNanos) {
                     // timeoutMillis elapsed without anything selected.
                     selectCnt = 1;
+
+                // 如果空轮询的次数大于512次
                 } else if (SELECTOR_AUTO_REBUILD_THRESHOLD > 0 &&
                         selectCnt >= SELECTOR_AUTO_REBUILD_THRESHOLD) {
 
-                    // 如果空轮询的次数大于512次,
-                    // 重新创建一个selector
                     // The code exists in an extra method to ensure the method is not too big to inline as this
                     // branch is not very likely to get hit very frequently.
+                    // 重新创建一个selector
                     selector = selectRebuildSelector(selectCnt);
                     selectCnt = 1;
                     break;
