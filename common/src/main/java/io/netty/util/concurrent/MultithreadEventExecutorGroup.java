@@ -81,10 +81,10 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
 
-        // 线程池的引用
+        // 维护一个线程池
         children = new EventExecutor[nThreads];
 
-        // 根据线程次的数量创建多个NioEvenLoop对象
+        // 根据线程池的数量创建多个NioEvenLoop对象
         for (int i = 0; i < nThreads; i ++) {
             boolean success = false;
             try {
