@@ -97,7 +97,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         // TailContext是一个(InBound) ChannelInBoundHead -> ChannelHandle
         tail = new TailContext(this);
-        // HeadContext是一个ChannelHandle
+        // HeadContext是一个(OutBound) ChannelOutBoundHead -> ChannelHandle
         head = new HeadContext(this);
 
         head.next = tail;

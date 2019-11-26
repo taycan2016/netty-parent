@@ -448,7 +448,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         for (;;) {
             try {
                 try {
-                    // 如果任务队列中有任务，就立即唤醒 selector ，并返回 selector 的 selecotrNow 方法的返回值。如果没有任务，直接返回 -1，这个策略在 DefaultSelectStrategy 中
+                    // 检查了一下 taskQueue 是否为空. 至于 taskQueue 是什么呢, 其实它就是存放一系列的需要由此 EventLoop 所执行的任务列表.
+                    // 如果任务队列中有任务，就立即唤醒 selector ，并返回 selector 的 selecotrNow 方法的返回值。
+                    // 如果没有任务，直接返回 -1，这个策略在 DefaultSelectStrategy 中
                     switch (selectStrategy.calculateStrategy(selectNowSupplier, hasTasks())) {
                     // 如果返回的是 -2， 则继续循环。如果返回的是 -1，也就是没有任务，则调用 selector 的 select 方法，并且设置 wakenUp 为 false。
                     case SelectStrategy.CONTINUE:

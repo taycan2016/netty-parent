@@ -386,8 +386,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
          * 如果成功，则直接结束，如果失败，则 调用 EventLoop 内部的 JDK 的 select 的 selectNow 方法立即返回，
          * 然后尝试第二次注册，如果还是报错，则抛出异常。
          * 注意，这里同时还把自己（NioServerSocketChannel）作为attach 绑定了该 selectKey 上。
-         * 大家可能奇怪，为什么注册的是0,而不是16 Accpet 事件呢？
-         * 不知道。但是最后还是会删除这个读事件，重新注册 accpet 事件的。
+         * 为什么注册的是0,而不是16 Accpet 事件呢？
+         * 传入0的话, 就说明仅仅将 Channel 注册到 Selector 中, 但是不设置 interest set.
          */
         for (;;) {
             try {
